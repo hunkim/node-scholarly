@@ -76,6 +76,26 @@ searchAuthor();
 searchPublications();
 ```
 
+## Verifying Scholar IDs
+
+To verify that a Google Scholar ID fetches the correct papers, use the included verification tool:
+
+```bash
+node examples/verify-scholar-id.js YOUR_SCHOLAR_ID
+```
+
+Example:
+```bash
+node examples/verify-scholar-id.js JE_m2UgAAAAJ
+```
+
+This will:
+- ✅ Verify the Scholar ID is valid
+- ✅ Fetch author information
+- ✅ Show top 5 most cited papers
+- ✅ Show 5 most recent papers
+- ✅ Confirm papers are being fetched correctly
+
 ## API Reference
 
 ### Searching
