@@ -1,7 +1,7 @@
 {
   "name": "node-scholarly",
   "version": "1.0.0",
-  "description": "Node.js library to retrieve author and publication information from Google Scholar",
+  "description": "Node.js/TypeScript library to retrieve author and publication information from Google Scholar",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -16,10 +16,31 @@
     "academic",
     "publications",
     "citations",
-    "research"
+    "research",
+    "google",
+    "scholar",
+    "parser",
+    "scraper",
+    "typescript"
   ],
-  "author": "",
+  "author": "Sung Kim <hunkim@gmail.com>",
   "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hunkim/node-scholarly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hunkim/node-scholarly/issues"
+  },
+  "homepage": "https://github.com/hunkim/node-scholarly#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
