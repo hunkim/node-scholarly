@@ -2,7 +2,7 @@
  * node-scholarly - Node.js library to retrieve author and publication information from Google Scholar
  */
 
-export { scholarly, Scholarly } from './scholarly';
+export { scholarly, Scholarly, AuthorSortBy } from './scholarly';
 export { ProxyGenerator } from './proxyGenerator';
 export {
   Author,

@@ -7,6 +7,9 @@ import { Author, Publication, PublicationSource, Journal } from './dataTypes';
 
 config();
 
+// Valid sort options for author publications
+export type AuthorSortBy = 'citedby' | 'year' | 'date' | 'pubdate';
+
 const AUTHSEARCH = '/citations?hl=en&view_op=search_authors&mauthors={0}';
 const KEYWORDSEARCH = '/citations?hl=en&view_op=search_authors&mauthors=label:{0}';
 const KEYWORDSEARCHBASE = '/citations?hl=en&view_op=search_authors&mauthors={}';
@@ -92,7 +95,7 @@ export class Scholarly {
   async fill(
     object: Author | Publication,
     sections: string[] = [],
-    sortby: string = 'citedby',
+    sortby: AuthorSortBy = 'citedby',
     publicationLimit: number = 0
   ): Promise<Author | Publication> {
     if (object.container_type === 'Author') {
@@ -133,7 +136,7 @@ export class Scholarly {
   async searchAuthorId(
     id: string,
     filled: boolean = false,
-    sortby: string = 'citedby',
+    sortby: AuthorSortBy = 'citedby',
     publicationLimit: number = 0
   ): Promise<Author> {
     return this.nav.searchAuthorId(id, filled, sortby, publicationLimit);

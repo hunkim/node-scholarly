@@ -115,10 +115,11 @@ export class AuthorParser {
       sections = sections.map(s => s.toLowerCase()).sort().reverse();
 
       let sortbyStr = '';
-      if (sortby === 'year') {
+      // Support multiple aliases: 'year', 'date', 'pubdate' all map to sorting by publication date
+      if (sortby === 'year' || sortby === 'date' || sortby === 'pubdate') {
         sortbyStr = '&view_op=list_works&sortby=pubdate';
       } else if (sortby !== 'citedby') {
-        throw new Error("Please enter a valid sortby parameter. Options: 'year', 'citedby'");
+        throw new Error("Please enter a valid sortby parameter. Options: 'citedby', 'year', 'date', 'pubdate'");
       }
 
       const urlCitations = CITATIONAUTH.replace('{0}', author.scholar_id) + sortbyStr;

@@ -133,8 +133,16 @@ while (pub) {
 Get author by Google Scholar ID.
 
 ```typescript
-const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', true);
-scholarly.pprint(author);
+// Get author with basic info only
+const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ');
+
+// Get author with all details filled
+const filledAuthor = await scholarly.searchAuthorId('JE_m2UgAAAAJ', true);
+
+// Get author with publications sorted by date, limited to 50
+const authorByDate = await scholarly.searchAuthorId('JE_m2UgAAAAJ', true, 'date', 50);
+
+scholarly.pprint(authorByDate);
 ```
 
 ### Filling Details
@@ -149,17 +157,26 @@ const filledAuthor = await scholarly.fill(author);
 // Fill only specific sections
 const partialAuthor = await scholarly.fill(author, ['basics', 'indices', 'counts']);
 
-// Fill author publications with limit
+// Fill author publications sorted by citations (default)
 const authorWithPubs = await scholarly.fill(author, ['publications'], 'citedby', 20);
+
+// Fill author publications sorted by date (most recent first)
+const authorByDate = await scholarly.fill(author, ['publications'], 'date', 20);
 ```
 
-Available sections for authors:
+**Available sections for authors:**
 - `basics` - name, affiliation, interests
 - `indices` - h-index, i10-index, etc.
 - `counts` - citations per year
 - `coauthors` - list of co-authors
 - `publications` - list of publications
 - `public_access` - public access mandates info
+
+**Available sort options for publications:**
+- `'citedby'` - Sort by number of citations (default, most cited first)
+- `'year'` - Sort by publication year (most recent first)
+- `'date'` - Alias for 'year'
+- `'pubdate'` - Alias for 'year'
 
 ### Citations and Related
 
