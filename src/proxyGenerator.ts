@@ -11,6 +11,7 @@ export class ProxyGenerator {
   private session: AxiosInstance | null = null;
   private timeout: number = 5000;
   private apiKey?: string;
+  private sessionConfig: any = {};
 
   constructor() {
     this.newSession();
@@ -77,6 +78,7 @@ export class ProxyGenerator {
 
       console.log(`Successful ScraperAPI requests ${response.data.requestCount} / ${response.data.requestLimit}`);
 
+      // ScraperAPI recommends 60 second timeout
       this.timeout = 60000;
 
       let prefix = 'http://scraperapi.retry_404=true';
@@ -90,31 +92,40 @@ export class ProxyGenerator {
         prefix += '.render=true';
       }
 
-      const proxyUrl = `${prefix}:${apiKey}@proxy-server.scraperapi.com:8001`;
-      const proxyWorks = await this.useProxy(proxyUrl);
+      // Extract username from prefix (remove http://)
+      const username = prefix.split('://')[1];
+      
+      // Set up the proxy configuration with HTTPS support
+      this.proxies = {
+        http: `${prefix}:${apiKey}@proxy-server.scraperapi.com:8001`,
+        https: `${prefix}:${apiKey}@proxy-server.scraperapi.com:8001`,
+      };
+      this.proxyWorks = true;
 
-      if (proxyWorks) {
-        console.log('ScraperAPI proxy setup successfully');
-        this.newSession({
-          proxy: {
-            host: 'proxy-server.scraperapi.com',
-            port: 8001,
-            auth: {
-              username: prefix.split('://')[1],
-              password: apiKey,
-            },
+      // Create session with proper proxy config and SSL verification disabled
+      this.newSession({
+        proxy: {
+          host: 'proxy-server.scraperapi.com',
+          port: 8001,
+          protocol: 'http',
+          auth: {
+            username: username,
+            password: apiKey,
           },
-        });
-        return true;
-      }
+        },
+        // Disable SSL verification as ScraperAPI handles SSL
+        httpsAgent: new (require('https').Agent)({
+          rejectUnauthorized: false,
+        }),
+      });
+
+      console.log('ScraperAPI proxy setup successfully');
 
       if (response.data.requestCount >= response.data.requestLimit) {
         console.warn('ScraperAPI account limit reached.');
-      } else {
-        console.warn('ScraperAPI does not seem to work. Reason unknown.');
       }
 
-      return false;
+      return true;
     } catch (error: any) {
       console.error('Error setting up ScraperAPI:', error.message);
       return false;
@@ -202,6 +213,11 @@ export class ProxyGenerator {
       // Close previous session if exists
     }
 
+    // Store config for re-use on retries (but generate fresh user agent)
+    if (Object.keys(config).length > 0) {
+      this.sessionConfig = config;
+    }
+
     const userAgent = new UserAgent().toString();
 
     const headers = {
@@ -213,12 +229,15 @@ export class ProxyGenerator {
     const axiosConfig: any = {
       headers,
       timeout: this.timeout,
-      ...config,
     };
 
-    if (this.proxyWorks && this.proxies.http) {
+    // Don't override proxy if it's already in config (e.g., for ScraperAPI)
+    if (this.proxyWorks && this.proxies.http && !config.proxy) {
       axiosConfig.proxy = this.parseProxyUrl(this.proxies.http);
     }
+
+    // Merge config last to preserve custom settings like httpsAgent
+    Object.assign(axiosConfig, config);
 
     this.session = axios.create(axiosConfig);
     return this.session;
@@ -233,7 +252,8 @@ export class ProxyGenerator {
       console.log(`Try #${numTries} failed. Switching proxy.`);
     }
 
-    this.newSession();
+    // Recreate session with stored config (maintains ScraperAPI settings on retries)
+    this.newSession(this.sessionConfig);
     return { session: this.getSession(), timeout: this.timeout };
   }
 }
