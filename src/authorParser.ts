@@ -86,6 +86,13 @@ export class AuthorParser {
     return author;
   }
 
+  private getSectionMethodName(section: string): string {
+    // Convert section name to method name: 'public_access' -> 'fillPublicAccess'
+    const parts = section.split('_');
+    const capitalizedParts = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1));
+    return 'fill' + capitalizedParts.join('');
+  }
+
   private findTagClassName($data: any, tag: string, text: string): string | null {
     const elements = $data.find(tag).toArray();
     for (const element of elements) {
@@ -136,7 +143,8 @@ export class AuthorParser {
             if (section === 'publications') {
               await this.fillPublications($, author, publicationLimit, sortbyStr);
             } else {
-              await (this as any)[`fill${section.charAt(0).toUpperCase() + section.slice(1)}`]($, author);
+              const methodName = this.getSectionMethodName(section);
+              await (this as any)[methodName]($, author);
             }
             author.filled.push(section);
           }
@@ -147,7 +155,8 @@ export class AuthorParser {
             if (section === 'publications') {
               await this.fillPublications($, author, publicationLimit, sortbyStr);
             } else {
-              await (this as any)[`fill${section.charAt(0).toUpperCase() + section.slice(1)}`]($, author);
+              const methodName = this.getSectionMethodName(section);
+              await (this as any)[methodName]($, author);
             }
             author.filled.push(section);
           }
