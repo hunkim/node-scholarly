@@ -1,8 +1,12 @@
 # node-scholarly
 
+[![Feature Completeness](https://img.shields.io/badge/Feature%20Completeness-100%25-brightgreen)](./COMPARISON_REPORT.md)
+[![npm version](https://img.shields.io/npm/v/node-scholarly.svg)](https://www.npmjs.com/package/node-scholarly)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+
 A Node.js/TypeScript library to retrieve author and publication information from [Google Scholar](https://scholar.google.com) in a friendly way without having to solve CAPTCHAs.
 
-This is a Node.js port of the Python [scholarly](https://github.com/scholarly-python-package/scholarly) package, providing comparable functionality for JavaScript/TypeScript projects.
+This is a **100% feature-complete** Node.js port of the Python [scholarly](https://github.com/scholarly-python-package/scholarly) package, providing full functionality for JavaScript/TypeScript projects. See [COMPARISON_REPORT.md](./COMPARISON_REPORT.md) for detailed feature comparison.
 
 ## Installation
 
@@ -12,6 +16,7 @@ npm install node-scholarly
 
 ## Features
 
+### Core Features
 - 🔍 Search for authors by name or keywords
 - 📚 Search for publications by query
 - 👤 Retrieve detailed author profiles
@@ -21,6 +26,12 @@ npm install node-scholarly
 - 📊 Access journal rankings and metrics
 - 📖 Export citations in BibTeX format
 - 🔄 Fully asynchronous API with TypeScript support
+
+### Advanced Features (v1.1.0+)
+- ✅ **Per-publication public access tracking** - Identify which papers comply with public access mandates
+- ✅ **Funding mandate details** - Extract agency, policy URLs, effective dates, embargo periods, and grant IDs
+- ✅ **Extended coauthors lists** - Fetch complete coauthor lists (>20) with automatic "View All" detection
+- ✅ **Full feature parity** with Python scholarly package
 
 ## Quick Start
 
