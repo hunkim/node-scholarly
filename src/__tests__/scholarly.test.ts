@@ -76,7 +76,7 @@ describe('Scholarly Tests', () => {
     }, 30000);
 
     test('fill author with indices', async () => {
-      const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', false);
+      const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', false);
       const filled = await scholarly.fill(author, ['basics', 'indices']);
 
       expect((filled as any).hindex).toBeDefined();
@@ -190,7 +190,7 @@ describe('Scholarly Tests', () => {
 
   describe('Utility Functions', () => {
     test('pprint author', async () => {
-      const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', false);
+      const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', false);
       
       // Should not throw
       expect(() => scholarly.pprint(author)).not.toThrow();
@@ -291,7 +291,7 @@ describe('Edge Cases', () => {
 
 describe('Data Types', () => {
   test('author has correct structure', async () => {
-    const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', false);
+    const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', false);
 
     expect(author.container_type).toBe('Author');
     expect(author.scholar_id).toBeDefined();

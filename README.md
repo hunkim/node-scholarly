@@ -122,7 +122,7 @@ while (pub) {
 Get author by Google Scholar ID.
 
 ```typescript
-const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', true);
+const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', true);
 scholarly.pprint(author);
 ```
 

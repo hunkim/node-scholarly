@@ -56,12 +56,12 @@ describe('Integration Tests', () => {
 
     test('search author by ID', async () => {
       try {
-        // Marie Curie's scholar ID
-        const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', false);
+        // Test with reliable scholar ID
+        const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', false);
 
         expect(author).toBeDefined();
         expect(author.container_type).toBe('Author');
-        expect(author.scholar_id).toBe('EmD_lTEAAAAJ');
+        expect(author.scholar_id).toBe('JE_m2UgAAAAJ');
         console.log('Found author by ID:', author.name);
       } catch (error: any) {
         console.warn('Test failed (possibly due to rate limiting):', error.message);
@@ -72,7 +72,7 @@ describe('Integration Tests', () => {
   describe('Fill Operations', () => {
     test('fill author basics', async () => {
       try {
-        const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', false);
+        const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', false);
         const filled = await scholarly.fill(author, ['basics']);
 
         expect((filled as any).name).toBeDefined();

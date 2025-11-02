@@ -47,8 +47,8 @@ async function searchPublicationExample() {
 async function searchByIdExample() {
   console.log('\n=== Search Author by ID ===');
   
-  // Marie Curie's Google Scholar ID
-  const author = await scholarly.searchAuthorId('EmD_lTEAAAAJ', true);
+  // Example Google Scholar ID
+  const author = await scholarly.searchAuthorId('JE_m2UgAAAAJ', true);
   
   console.log('\nAuthor details:');
   scholarly.pprint(author);
