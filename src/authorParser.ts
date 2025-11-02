@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import { Navigator } from './navigator';
-import { Author, AuthorSource, PublicAccess } from './dataTypes';
+import { Author, AuthorSource, PublicAccess, Publication } from './dataTypes';
 import { PublicationParser } from './publicationParser';
 
 const CITATIONAUTHRE = /user=([\w-]*)/;
@@ -285,6 +285,77 @@ export class AuthorParser {
       available: nAvailable,
       not_available: nNotAvailable,
     };
+
+    // Mark individual publications with public_access status
+    if (!author.filled.includes('publications')) {
+      return;
+    }
+
+    // Create publication lookup map
+    const publicationsMap: { [key: string]: Publication } = {};
+    author.publications?.forEach(pub => {
+      if (pub.author_pub_id) {
+        publicationsMap[pub.author_pub_id] = pub;
+      }
+    });
+
+    // Fetch mandate pages and mark publications
+    const mandatesUrl = MANDATES.replace('{0}', author.scholar_id).replace('{1}', String(PAGESIZE));
+    let $mandates = await this.nav.getSoup(mandatesUrl);
+
+    while (true) {
+      // Mark not available publications
+      const notAvailSection = $mandates('.gsc_mnd_sec_na').first();
+      if (notAvailSection.length) {
+        notAvailSection.find('a.gsc_mnd_art_rvw').each((i: number, row: any) => {
+          const href = $mandates(row).attr('data-href');
+          if (href) {
+            const match = href.match(/citation_for_view=([\w:-]*)/);
+            if (match && publicationsMap[match[1]]) {
+              publicationsMap[match[1]].public_access = false;
+            }
+          }
+        });
+      }
+
+      // Mark available publications
+      const availSection = $mandates('.gsc_mnd_sec_avl').first();
+      if (availSection.length) {
+        availSection.find('a.gsc_mnd_art_rvw').each((i: number, row: any) => {
+          const href = $mandates(row).attr('data-href');
+          if (href) {
+            const match = href.match(/citation_for_view=([\w:-]*)/);
+            if (match && publicationsMap[match[1]]) {
+              publicationsMap[match[1]].public_access = true;
+            }
+          }
+        });
+      }
+
+      // Check for next page
+      const nextButton = $mandates('.gs_btnPR');
+      if (nextButton.length && !nextButton.attr('disabled')) {
+        const onclick = nextButton.attr('onclick');
+        if (onclick) {
+          // Extract URL from onclick="window.location='...'"
+          const urlMatch = onclick.match(/window\.location='([^']*)'/);
+          if (urlMatch) {
+            let url = urlMatch[1];
+            // Decode HTML entities and unicode escapes
+            url = url.replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) =>
+              String.fromCharCode(parseInt(hex, 16))
+            );
+            $mandates = await this.nav.getSoup(url);
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
   }
 
   private async fillPublications(
@@ -323,28 +394,86 @@ export class AuthorParser {
     }
   }
 
+  private getCoauthorsShort($: cheerio.CheerioAPI): { ids: string[], names: string[], affiliations: string[] } {
+    const coauthors = $('.gsc_rsb_a_desc').toArray();
+    const ids: string[] = [];
+    const names: string[] = [];
+    const affiliations: string[] = [];
+
+    for (const coauth of coauthors) {
+      const $coauth = $(coauth);
+      const link = $coauth.find('a').first();
+      const href = link.attr('href');
+
+      if (href) {
+        const match = href.match(CITATIONAUTHRE);
+        if (match) {
+          ids.push(match[1]);
+          const nameElem = $coauth.find('[tabindex="-1"]');
+          names.push(nameElem.length ? nameElem.text().trim() : link.text().trim());
+          affiliations.push($coauth.find('.gsc_rsb_a_ext').text().trim());
+        }
+      }
+    }
+
+    return { ids, names, affiliations };
+  }
+
+  private async getCoauthorsLong(author: Author): Promise<{ ids: string[], names: string[], affiliations: string[] }> {
+    const url = COAUTH.replace('{0}', author.scholar_id);
+    const $ = await this.nav.getSoup(url);
+
+    const coauthors = $('.gs_ai.gs_scl').toArray();
+    const ids: string[] = [];
+    const names: string[] = [];
+    const affiliations: string[] = [];
+
+    for (const coauth of coauthors) {
+      const $coauth = $(coauth);
+      const link = $coauth.find('a').first();
+      const href = link.attr('href');
+
+      if (href) {
+        const match = href.match(CITATIONAUTHRE);
+        if (match) {
+          ids.push(match[1]);
+          names.push($coauth.find('.gs_ai_name').text().trim());
+          affiliations.push($coauth.find('.gs_ai_aff').text().trim());
+        }
+      }
+    }
+
+    return { ids, names, affiliations };
+  }
+
   private async fillCoauthors($: cheerio.CheerioAPI, author: Author): Promise<void> {
     author.coauthors = [];
 
-    const coauthors = $('.gsc_rsb_a_desc').toArray();
-    if (coauthors.length > 0) {
-      for (const coauth of coauthors) {
-        const $coauth = $(coauth);
-        const link = $coauth.find('a').first();
-        const href = link.attr('href');
+    // Check if "View All" button exists
+    const viewAllButton = $('#gsc_coauth_opn');
 
-        if (href) {
-          const match = href.match(CITATIONAUTHRE);
-          if (match) {
-            const coauthId = match[1];
-            const newCoauthor = this.getAuthor(coauthId);
-            newCoauthor.name = link.attr('tabindex') === '-1' ? link.text() : '';
-            newCoauthor.affiliation = $coauth.find('.gsc_rsb_a_ext').text();
-            newCoauthor.source = AuthorSource.CO_AUTHORS_LIST;
-            author.coauthors.push(newCoauthor);
-          }
-        }
+    let coauthorInfo: { ids: string[], names: string[], affiliations: string[] };
+
+    if (viewAllButton.length === 0) {
+      // Short list (≤20 coauthors)
+      coauthorInfo = this.getCoauthorsShort($);
+    } else {
+      // Long list (>20 coauthors) - try to fetch all
+      try {
+        coauthorInfo = await this.getCoauthorsLong(author);
+      } catch (error) {
+        console.warn('Failed to fetch long coauthor list, falling back to short list:', error);
+        coauthorInfo = this.getCoauthorsShort($);
       }
+    }
+
+    // Build coauthor list
+    for (let i = 0; i < coauthorInfo.ids.length; i++) {
+      const newCoauthor = this.getAuthor(coauthorInfo.ids[i]);
+      newCoauthor.name = coauthorInfo.names[i];
+      newCoauthor.affiliation = coauthorInfo.affiliations[i];
+      newCoauthor.source = AuthorSource.CO_AUTHORS_LIST;
+      author.coauthors.push(newCoauthor);
     }
   }
 }

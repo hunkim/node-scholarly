@@ -1,12 +1,13 @@
 import * as cheerio from 'cheerio';
 import { Navigator } from './navigator';
-import { Publication, PublicationSource, BibEntry } from './dataTypes';
+import { Publication, PublicationSource, BibEntry, Mandate } from './dataTypes';
 
 const SCHOLARPUBRE = /cites=([\d,]*)/;
 const CITATIONPUB = '/citations?hl=en&view_op=view_citation&citation_for_view={0}';
 const CITATIONPUBRE = /citation_for_view=([\w-]*:[\w-]*)/;
 const BIBCITE = '/scholar?hl=en&q=info:{0}:scholar.google.com/&output=cite&scirp={1}&hl=en';
 const CITEDBYLINK = '/scholar?hl=en&cites={0}';
+const MANDATES_URL = '/citations?view_op=view_mandate&hl=en&citation_for_view={0}';
 
 export class SearchScholarIterator {
   private url: string;
@@ -324,6 +325,76 @@ export class PublicationParser {
     return authorIdList;
   }
 
+  private async fillPublicAccessMandates(publication: Publication): Promise<void> {
+    if (!publication.public_access || !publication.author_pub_id) {
+      return;
+    }
+
+    const mandatesUrl = MANDATES_URL.replace('{0}', publication.author_pub_id);
+    const $ = await this.nav.getSoup(mandatesUrl);
+
+    const mandateItems = $('li').toArray();
+    for (const item of mandateItems) {
+      const $item = $(item);
+      const mandate: Mandate = {};
+
+      // Agency name
+      const agencyElem = $item.find('span.gsc_md_mndt_name');
+      if (agencyElem.length) {
+        mandate.agency = agencyElem.text().trim();
+      }
+
+      // Policy URL
+      const policyLink = $item.find('div.gsc_md_mndt_title a');
+      if (policyLink.length) {
+        mandate.url_policy = policyLink.attr('href');
+      }
+
+      // Cached policy URL
+      const cachedLink = $item.find('span.gs_a a');
+      if (cachedLink.length) {
+        mandate.url_policy_cached = cachedLink.attr('href');
+      }
+
+      // Parse descriptions
+      const descriptions = $item.find('div.gsc_md_mndt_desc').toArray();
+      for (const desc of descriptions) {
+        const $desc = $(desc);
+        const text = $desc.text();
+
+        // Effective date
+        const dateMatch = text.match(/Effective date: (\d{4})\/(\d{1,2})/);
+        if (dateMatch) {
+          mandate.effective_date = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}`;
+        }
+
+        // Embargo period
+        const embargoMatch = text.match(/Embargo period: (\d{1,2}) months/);
+        if (embargoMatch) {
+          mandate.embargo = `${embargoMatch[1]} months`;
+        }
+
+        // Funding acknowledgment
+        if (text.includes('Funding acknowledgment')) {
+          const ackElem = $desc.find('span.gs_gray');
+          if (ackElem.length) {
+            mandate.acknowledgement = ackElem.text().trim();
+          }
+        }
+
+        // Grant ID
+        if (text.includes('Grant')) {
+          const grantMatch = text.match(/Grant[:\s]+([^\n]+)/);
+          if (grantMatch) {
+            mandate.grant = grantMatch[1].trim();
+          }
+        }
+      }
+
+      publication.mandates!.push(mandate);
+    }
+  }
+
   async fill(publication: Publication): Promise<Publication> {
     if (publication.source === PublicationSource.AUTHOR_PUBLICATION_ENTRY) {
       const url = CITATIONPUB.replace('{0}', publication.author_pub_id!);
@@ -429,6 +500,12 @@ export class PublicationParser {
         if (eprintLink.length) {
           publication.eprint_url = eprintLink.attr('href');
         }
+      }
+
+      // Fill public access mandates if applicable
+      if (publication.public_access) {
+        publication.mandates = [];
+        await this.fillPublicAccessMandates(publication);
       }
 
       publication.filled = true;
