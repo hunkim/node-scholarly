@@ -178,6 +178,24 @@ const authorByDate = await scholarly.fill(author, ['publications'], 'date', 20);
 - `'date'` - Alias for 'year'
 - `'pubdate'` - Alias for 'year'
 
+**⚠️ Important: Multiple Fill Calls**
+
+Once a section is filled, subsequent `fill()` calls for the same section will be **skipped**. If you need to fetch publications with different sort orders, fetch the author separately for each operation:
+
+```typescript
+// ❌ WRONG - Second fill() will be skipped!
+const author = await scholarly.searchAuthorId('ABC123');
+const byCitations = await scholarly.fill(author, ['publications'], 'citedby', 6);
+const byDate = await scholarly.fill(author, ['publications'], 'date', 6); // Skipped!
+
+// ✅ CORRECT - Fetch author separately for each sort order
+const authorForCited = await scholarly.searchAuthorId('ABC123');
+const byCitations = await scholarly.fill(authorForCited, ['publications'], 'citedby', 6);
+
+const authorForRecent = await scholarly.searchAuthorId('ABC123');
+const byDate = await scholarly.fill(authorForRecent, ['publications'], 'date', 6);
+```
+
 ### Citations and Related
 
 #### `citedby(publication: Publication)`
